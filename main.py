@@ -80,7 +80,13 @@ def find_cheapest_provider(all_items):
 
     return cheapest_prices
 
+current_col = None
+current_col_dir = False
+
 def treeview_sort_column(tv, col, reverse):
+    global current_col
+    global current_col_dir
+
     l = [(tv.set(k, col), k) for k in tv.get_children('')]
 
     if col == 'Cheapest Price':
@@ -90,6 +96,15 @@ def treeview_sort_column(tv, col, reverse):
 
     for index, (val, k) in enumerate(l):
         tv.move(k, '', index)
+
+    if current_col:
+        tv.heading(current_col, text=current_col)
+
+    sort_indicator = ' ↓' if reverse else ' ↑'
+    tv.heading(col, text=col + sort_indicator)
+
+    current_col = col
+    current_col_dir = reverse
 
     tv.heading(col, command=lambda: treeview_sort_column(tv, col, not reverse))
 
