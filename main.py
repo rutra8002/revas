@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 import ttkbootstrap
 
+
 class Item:
     def __init__(self, id, provider, name, stars, price):
         self.id = id
@@ -12,6 +13,7 @@ class Item:
 
     def __str__(self):
         return f"ID: {self.id}, Provider: {self.provider}, Name: {self.name}, Stars: {self.stars}, Price: {self.price}"
+
 
 all_items = []
 
@@ -24,8 +26,6 @@ with open('item_details.txt', 'r') as file:
         item = Item(components[0], components[1], components[2], components[3], components[4])
 
         all_items.append(item)
-
-
 
 root = tk.Tk()
 style = ttkbootstrap.Style(theme='darkly')
@@ -59,9 +59,12 @@ def search_treeview(*args):
         name, stars = key
         provider, price = data
         if search_text in name.lower():
-            treeview.insert('', 'end', values=(name, '☭' * int(stars), provider, str(price)+"zł"))
+            treeview.insert('', 'end', values=(name, '☭' * int(stars), provider, str(price) + "zł"))
+
 
 search_text.trace("w", search_treeview)
+
+
 def find_cheapest_provider(all_items):
     items_by_name_and_stars = {}
     for item in all_items:
@@ -77,9 +80,25 @@ def find_cheapest_provider(all_items):
 
     return cheapest_prices
 
+def treeview_sort_column(tv, col, reverse):
+    l = [(tv.set(k, col), k) for k in tv.get_children('')]
+
+    if col == 'Cheapest Price':
+        l = [(int(val.replace('zł', '')), k) for val, k in l]
+
+    l.sort(reverse=reverse)
+
+    for index, (val, k) in enumerate(l):
+        tv.move(k, '', index)
+
+    tv.heading(col, command=lambda: treeview_sort_column(tv, col, not reverse))
+    
+for col in ['Item Name', 'Stars', 'Cheapest Provider', 'Cheapest Price']:
+    treeview.heading(col, text=col, command=lambda _col=col: treeview_sort_column(treeview, _col, False))
+
 cheapest_prices = find_cheapest_provider(all_items)
 for key, data in cheapest_prices.items():
     name, stars = key
     provider, price = data
-    treeview.insert('', 'end', values=(name, '☭' * int(stars), provider, str(price)+"zł"))
+    treeview.insert('', 'end', values=(name, '☭' * int(stars), provider, str(price) + "zł"))
 root.mainloop()
