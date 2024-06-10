@@ -55,10 +55,18 @@ def search_treeview(*args):
     search_text = search_entry.get().lower()
     for row in treeview.get_children():
         treeview.delete(row)
-    for key, data in cheapest_prices.items():
-        name, stars = key
-        provider, price = data
-        if search_text in name.lower():
+    if search_text:
+        for key, data in cheapest_prices.items():
+            name, stars = key
+            provider, price = data
+            if search_text in name.lower():
+                treeview.insert('', 'end', values=(name, '☭' * int(stars), provider, str(price) + "zł"))
+        if not treeview.get_children():
+            treeview.insert('', 'end', values=("No results found", "", "", ""))
+    else:
+        for key, data in cheapest_prices.items():
+            name, stars = key
+            provider, price = data
             treeview.insert('', 'end', values=(name, '☭' * int(stars), provider, str(price) + "zł"))
 
 
@@ -116,4 +124,6 @@ for key, data in cheapest_prices.items():
     name, stars = key
     provider, price = data
     treeview.insert('', 'end', values=(name, '☭' * int(stars), provider, str(price) + "zł"))
+
+
 root.mainloop()
