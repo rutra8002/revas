@@ -28,7 +28,7 @@ with open('item_details.txt', 'r') as file:
         all_items.append(item)
 
 root = tk.Tk()
-style = ttkbootstrap.Style(theme='darkly')
+style = ttkbootstrap.Style(theme='vapor')
 root.title('Cheapest Price for Each Item')
 
 root.geometry('1600x1200')
@@ -92,7 +92,7 @@ def treeview_sort_column(tv, col, reverse):
         tv.move(k, '', index)
 
     tv.heading(col, command=lambda: treeview_sort_column(tv, col, not reverse))
-    
+
 for col in ['Item Name', 'Stars', 'Cheapest Provider', 'Cheapest Price']:
     treeview.heading(col, text=col, command=lambda _col=col: treeview_sort_column(treeview, _col, False))
 
