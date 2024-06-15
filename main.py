@@ -12,7 +12,7 @@ class Item:
         self.price = price
 
     def __str__(self):
-        return f"ID: {self.id}, Provider: {self.provider}, Name: {self.name}, Stars: {self.stars}, Price: {self.price}"
+        return f"ID: {self.id}, Provider: {self.provider}, Name: {self.name}, Stars: {'⭐' * int(self.stars)}, Price: {self.price}zł"
 
 
 all_items = []
