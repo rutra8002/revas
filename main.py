@@ -34,6 +34,7 @@ root.title('Cheapest Price for Each Item')
 root.geometry('1600x1200')
 
 style.configure('Treeview', font=('Helvetica', 12), rowheight=50)
+style.configure('Treeview.Heading', font=('Helvetica', 12))
 
 treeview = ttk.Treeview(root, columns=('Item Name', 'Stars', 'Cheapest Provider', 'Cheapest Price'), show='headings')
 treeview.heading('Item Name', text='Item Name')
@@ -44,11 +45,11 @@ treeview.heading('Cheapest Price', text='Cheapest Price')
 treeview.place(x=0, y=50, width=1600, height=1150)
 
 search_text = tk.StringVar()
-search_entry = tk.Entry(root, textvariable=search_text)
+search_entry = tk.Entry(root, textvariable=search_text, font=('Helvetica', 12))
 search_entry.place(x=1150, y=5, width=400, height=40)
 
-search_label = tk.Label(root, text="Search")
-search_label.place(x=1100, y=5, height=40)
+search_label = tk.Label(root, text="Search:", font=('Helvetica', 12))
+search_label.place(x=1020, y=5, height=40)
 
 
 def search_treeview(*args):
