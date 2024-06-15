@@ -52,10 +52,37 @@ search_label = tk.Label(root, text="Search:", font=('Helvetica', 12))
 search_label.place(x=1020, y=5, height=40)
 
 
+# Step 1: Create a context menu with a pin/unpin option
+context_menu = tk.Menu(root, tearoff=0)
+context_menu.add_command(label="Pin/Unpin", command=lambda: pin_unpin_item(treeview.selection()[0]), font=('Helvetica', 12))
+
+# Step 2: Bind the right-click event to a function that shows the context menu
+def show_context_menu(event):
+    context_menu.post(event.x_root, event.y_root)
+
+treeview.bind("<Button-3>", show_context_menu)
+
+# Bind the <FocusOut> event to a function that hides the context menu
+def hide_context_menu(event=None):
+    context_menu.unpost()
+
+treeview.bind("<Button-1>", hide_context_menu)
+root.bind("<FocusOut>", hide_context_menu)
+
+# Step 3: In the pin/unpin function, check if the item is already pinned. If it is, unpin it. If it's not, pin it.
+pinned_items = set()
+
+def pin_unpin_item(item):
+    if item in pinned_items:
+        pinned_items.remove(item)
+    else:
+        pinned_items.add(item)
+
 def search_treeview(*args):
     search_text = search_entry.get().lower()
     for row in treeview.get_children():
-        treeview.delete(row)
+        if row not in pinned_items:
+            treeview.delete(row)
     if search_text:
         for key, data in cheapest_prices.items():
             name, stars = key
@@ -69,7 +96,6 @@ def search_treeview(*args):
             name, stars = key
             provider, price = data
             treeview.insert('', 'end', values=(name, '☭' * int(stars), provider, str(price) + "zł"))
-
 
 search_text.trace("w", search_treeview)
 
@@ -96,7 +122,7 @@ def treeview_sort_column(tv, col, reverse):
     global current_col
     global current_col_dir
 
-    l = [(tv.set(k, col), k) for k in tv.get_children('')]
+    l = [(tv.set(k, col), k) for k in tv.get_children('') if k not in pinned_items]
 
     if col == 'Cheapest Price':
         l = [(int(val.replace('zł', '')), k) for val, k in l]
@@ -116,6 +142,10 @@ def treeview_sort_column(tv, col, reverse):
     current_col_dir = reverse
 
     tv.heading(col, command=lambda: treeview_sort_column(tv, col, not reverse))
+
+    # Move pinned items to the top
+    for item in pinned_items:
+        tv.move(item, '', 0)
 
 for col in ['Item Name', 'Stars', 'Cheapest Provider', 'Cheapest Price']:
     treeview.heading(col, text=col, command=lambda _col=col: treeview_sort_column(treeview, _col, False))
