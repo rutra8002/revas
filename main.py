@@ -1,5 +1,6 @@
 from PyQt6.QtWidgets import QApplication, QMainWindow, QTableWidget, QTableWidgetItem, QLineEdit, QLabel, QVBoxLayout, QWidget, QMenu
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QPushButton
 
 class Item:
     def __init__(self, id, provider, name, stars, price):
@@ -37,6 +38,10 @@ class MainWindow(QMainWindow):
         self.search_entry = QLineEdit(self)
         self.search_entry.textChanged.connect(self.search_treeview)
         self.layout.addWidget(self.search_entry)
+
+        self.sort_button = QPushButton("Sort by Price", self)
+        self.sort_button.clicked.connect(self.sort_table)
+        self.layout.addWidget(self.sort_button)
 
         self.table_widget = QTableWidget(self)
         self.table_widget.setColumnCount(4)
@@ -104,6 +109,9 @@ class MainWindow(QMainWindow):
         self.table_widget.setItem(row_position, 1, QTableWidgetItem('⭐' * int(stars)))
         self.table_widget.setItem(row_position, 2, QTableWidgetItem(provider))
         self.table_widget.setItem(row_position, 3, QTableWidgetItem(f"{price}zł"))
+
+    def sort_table(self):
+        self.table_widget.sortItems(3, Qt.SortOrder.AscendingOrder)
 
 app = QApplication([])
 window = MainWindow()
