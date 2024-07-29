@@ -1,7 +1,5 @@
-import tkinter as tk
-from tkinter import ttk
-import ttkbootstrap
-
+from PyQt6.QtWidgets import QApplication, QMainWindow, QTableWidget, QTableWidgetItem, QLineEdit, QLabel, QVBoxLayout, QWidget, QMenu
+from PyQt6.QtCore import Qt
 
 class Item:
     def __init__(self, id, provider, name, stars, price):
@@ -14,147 +12,100 @@ class Item:
     def __str__(self):
         return f"ID: {self.id}, Provider: {self.provider}, Name: {self.name}, Stars: {'⭐' * int(self.stars)}, Price: {self.price}zł"
 
-
 all_items = []
 
 with open('item_details.txt', 'r') as file:
     for line in file:
         components = line.split(',')
-
         components = [component.strip() for component in components]
-
         item = Item(components[0], components[1], components[2], components[3], components[4])
-
         all_items.append(item)
 
-root = tk.Tk()
-style = ttkbootstrap.Style(theme='vapor')
-root.title('Cheapest Price for Each Item')
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle('Cheapest Price for Each Item')
+        self.setGeometry(100, 100, 1600, 1200)
 
-root.geometry('1600x1200')
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+        self.layout = QVBoxLayout(self.central_widget)
 
-style.configure('Treeview', font=('Helvetica', 12), rowheight=50)
-style.configure('Treeview.Heading', font=('Helvetica', 12))
+        self.search_label = QLabel("Search:", self)
+        self.layout.addWidget(self.search_label)
 
-treeview = ttk.Treeview(root, columns=('Item Name', 'Stars', 'Cheapest Provider', 'Cheapest Price'), show='headings')
-treeview.heading('Item Name', text='Item Name')
-treeview.heading('Stars', text='Stars')
-treeview.heading('Cheapest Provider', text='Cheapest Provider')
-treeview.heading('Cheapest Price', text='Cheapest Price')
+        self.search_entry = QLineEdit(self)
+        self.search_entry.textChanged.connect(self.search_treeview)
+        self.layout.addWidget(self.search_entry)
 
-treeview.place(x=0, y=50, width=1600, height=1150)
+        self.table_widget = QTableWidget(self)
+        self.table_widget.setColumnCount(4)
+        self.table_widget.setHorizontalHeaderLabels(['Item Name', 'Stars', 'Cheapest Provider', 'Cheapest Price'])
+        self.layout.addWidget(self.table_widget)
 
-search_text = tk.StringVar()
-search_entry = tk.Entry(root, textvariable=search_text, font=('Helvetica', 12))
-search_entry.place(x=1150, y=5, width=400, height=40)
+        self.table_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.table_widget.customContextMenuRequested.connect(self.show_context_menu)
 
-search_label = tk.Label(root, text="Search:", font=('Helvetica', 12))
-search_label.place(x=1020, y=5, height=40)
+        self.pinned_items = set()
+        self.cheapest_prices = self.find_cheapest_provider(all_items)
+        self.populate_table()
 
+    def show_context_menu(self, position):
+        menu = QMenu()
+        pin_unpin_action = menu.addAction("Pin/Unpin")
+        pin_unpin_action.triggered.connect(lambda: self.pin_unpin_item(self.table_widget.currentRow()))
+        menu.exec(self.table_widget.viewport().mapToGlobal(position))
 
-# Step 1: Create a context menu with a pin/unpin option
-context_menu = tk.Menu(root, tearoff=0)
-context_menu.add_command(label="Pin/Unpin", command=lambda: pin_unpin_item(treeview.selection()[0]), font=('Helvetica', 12))
+    def pin_unpin_item(self, row):
+        item = self.table_widget.item(row, 0).text()
+        if item in self.pinned_items:
+            self.pinned_items.remove(item)
+        else:
+            self.pinned_items.add(item)
+        self.populate_table()
 
-# Step 2: Bind the right-click event to a function that shows the context menu
-def show_context_menu(event):
-    context_menu.post(event.x_root, event.y_root)
-
-treeview.bind("<Button-3>", show_context_menu)
-
-# Bind the <FocusOut> event to a function that hides the context menu
-def hide_context_menu(event=None):
-    context_menu.unpost()
-
-treeview.bind("<Button-1>", hide_context_menu)
-root.bind("<FocusOut>", hide_context_menu)
-
-# Step 3: In the pin/unpin function, check if the item is already pinned. If it is, unpin it. If it's not, pin it.
-pinned_items = set()
-
-def pin_unpin_item(item):
-    if item in pinned_items:
-        pinned_items.remove(item)
-    else:
-        pinned_items.add(item)
-
-def search_treeview(*args):
-    search_text = search_entry.get().lower()
-    for row in treeview.get_children():
-        if row not in pinned_items:
-            treeview.delete(row)
-    if search_text:
-        for key, data in cheapest_prices.items():
+    def search_treeview(self):
+        search_text = self.search_entry.text().lower()
+        self.table_widget.setRowCount(0)
+        for key, data in self.cheapest_prices.items():
             name, stars = key
             provider, price = data
             if search_text in name.lower():
-                treeview.insert('', 'end', values=(name, '☭' * int(stars), provider, str(price) + "zł"))
-        if not treeview.get_children():
-            treeview.insert('', 'end', values=("No results found", "", "", ""))
-    else:
-        for key, data in cheapest_prices.items():
+                self.add_table_row(name, stars, provider, price)
+        if self.table_widget.rowCount() == 0:
+            self.add_table_row("No results found", "", "", "")
+
+    def find_cheapest_provider(self, all_items):
+        items_by_name_and_stars = {}
+        for item in all_items:
+            key = (item.name, item.stars)
+            if key not in items_by_name_and_stars:
+                items_by_name_and_stars[key] = []
+            items_by_name_and_stars[key].append(item)
+
+        cheapest_prices = {}
+        for key, items in items_by_name_and_stars.items():
+            cheapest_item = min(items, key=lambda item: int(item.price))
+            cheapest_prices[key] = (cheapest_item.provider, int(cheapest_item.price))
+
+        return cheapest_prices
+
+    def populate_table(self):
+        self.table_widget.setRowCount(0)
+        for key, data in self.cheapest_prices.items():
             name, stars = key
             provider, price = data
-            treeview.insert('', 'end', values=(name, '☭' * int(stars), provider, str(price) + "zł"))
+            self.add_table_row(name, stars, provider, price)
 
-search_text.trace("w", search_treeview)
+    def add_table_row(self, name, stars, provider, price):
+        row_position = self.table_widget.rowCount()
+        self.table_widget.insertRow(row_position)
+        self.table_widget.setItem(row_position, 0, QTableWidgetItem(name))
+        self.table_widget.setItem(row_position, 1, QTableWidgetItem('⭐' * int(stars)))
+        self.table_widget.setItem(row_position, 2, QTableWidgetItem(provider))
+        self.table_widget.setItem(row_position, 3, QTableWidgetItem(f"{price}zł"))
 
-
-def find_cheapest_provider(all_items):
-    items_by_name_and_stars = {}
-    for item in all_items:
-        key = (item.name, item.stars)
-        if key not in items_by_name_and_stars:
-            items_by_name_and_stars[key] = []
-        items_by_name_and_stars[key].append(item)
-
-    cheapest_prices = {}
-    for key, items in items_by_name_and_stars.items():
-        cheapest_item = min(items, key=lambda item: int(item.price))
-        cheapest_prices[key] = (cheapest_item.provider, int(cheapest_item.price))
-
-    return cheapest_prices
-
-current_col = None
-current_col_dir = False
-
-def treeview_sort_column(tv, col, reverse):
-    global current_col
-    global current_col_dir
-
-    l = [(tv.set(k, col), k) for k in tv.get_children('') if k not in pinned_items]
-
-    if col == 'Cheapest Price':
-        l = [(int(val.replace('zł', '')), k) for val, k in l]
-
-    l.sort(reverse=reverse)
-
-    for index, (val, k) in enumerate(l):
-        tv.move(k, '', index)
-
-    if current_col:
-        tv.heading(current_col, text=current_col)
-
-    sort_indicator = ' ↓' if reverse else ' ↑'
-    tv.heading(col, text=col + sort_indicator)
-
-    current_col = col
-    current_col_dir = reverse
-
-    tv.heading(col, command=lambda: treeview_sort_column(tv, col, not reverse))
-
-    # Move pinned items to the top
-    for item in pinned_items:
-        tv.move(item, '', 0)
-
-for col in ['Item Name', 'Stars', 'Cheapest Provider', 'Cheapest Price']:
-    treeview.heading(col, text=col, command=lambda _col=col: treeview_sort_column(treeview, _col, False))
-
-cheapest_prices = find_cheapest_provider(all_items)
-for key, data in cheapest_prices.items():
-    name, stars = key
-    provider, price = data
-    treeview.insert('', 'end', values=(name, '☭' * int(stars), provider, str(price) + "zł"))
-
-
-root.mainloop()
+app = QApplication([])
+window = MainWindow()
+window.show()
+app.exec()
